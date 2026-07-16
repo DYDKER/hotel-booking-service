@@ -1,10 +1,11 @@
+from datetime import date
 from decimal import Decimal, InvalidOperation
 
 from django.http import HttpResponse, HttpResponseNotFound, HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 
-from hotels.models import HotelRoom
+from hotels.models import Booking, HotelRoom
 
 
 def index(request):
@@ -115,4 +116,77 @@ def list_rooms(request):
         for room in rooms
     ]
 
+    return JsonResponse(data, safe=False)
+
+
+def parse_date(value):
+    try:
+        return date.fromisoformat(value)
+    except (TypeError, ValueError):
+        return None
+
+
+@csrf_exempt
+def create_booking(request):
+    if request.method != "POST":
+        return error_response("method not allowed", 405)
+
+    try:
+        room = HotelRoom.objects.get(id=int(request.POST.get("room_id", "")))
+    except ValueError:
+        return error_response("room_id must be an integer")
+    except HotelRoom.DoesNotExist:
+        return error_response("room not found", 404)
+
+    date_start = parse_date(request.POST.get("date_start"))
+    date_end = parse_date(request.POST.get("date_end"))
+    if date_start is None or date_end is None:
+        return error_response("dates must use YYYY-MM-DD format")
+    if date_end <= date_start:
+        return error_response("date_end must be after date_start")
+
+    booking = Booking.objects.create(
+        room=room,
+        date_start=date_start,
+        date_end=date_end,
+    )
+    return JsonResponse({"booking_id": booking.id})
+
+
+@csrf_exempt
+def delete_booking(request):
+    if request.method != "POST":
+        return error_response("method not allowed", 405)
+
+    try:
+        booking = Booking.objects.get(id=int(request.POST.get("booking_id", "")))
+    except ValueError:
+        return error_response("booking_id must be an integer")
+    except Booking.DoesNotExist:
+        return error_response("booking not found", 404)
+
+    booking.delete()
+    return JsonResponse({"deleted": True})
+
+
+def list_bookings(request):
+    if request.method != "GET":
+        return error_response("method not allowed", 405)
+
+    try:
+        room = HotelRoom.objects.get(id=int(request.GET.get("room_id", "")))
+    except ValueError:
+        return error_response("room_id must be an integer")
+    except HotelRoom.DoesNotExist:
+        return error_response("room not found", 404)
+
+    bookings = Booking.objects.filter(room=room).order_by("date_start")
+    data = [
+        {
+            "booking_id": booking.id,
+            "date_start": booking.date_start.isoformat(),
+            "date_end": booking.date_end.isoformat(),
+        }
+        for booking in bookings
+    ]
     return JsonResponse(data, safe=False)
