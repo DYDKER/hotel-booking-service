@@ -1,9 +1,6 @@
 
-from django.urls import path, register_converter
+from django.urls import path
 from . import views
-from . import converters
-
-register_converter(converters.FourDigitYearConverter, "year4")
 
 urlpatterns = [
     path('', views.index, name='home'),

@@ -42,6 +42,18 @@ Run tests:
 .\.venv\Scripts\python.exe .\bookingservice\manage.py test hotels --noinput
 ```
 
+## Database Schema
+
+The application uses Django migrations during normal startup.
+
+For review and manual database setup, the SQL schema is documented in:
+
+```text
+schema.sql
+```
+
+It contains table definitions for hotel rooms and bookings plus indexes used by booking lookups.
+
 ## Configuration
 
 PostgreSQL settings are read from environment variables. Local defaults match `docker-compose.yml`.

@@ -16,12 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from hotels import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('hotels.urls')),
-    path('bookings/', views.my_bookings),
 ]
-
-handler404 = views.page_not_found
