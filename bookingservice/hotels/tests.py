@@ -247,6 +247,45 @@ class BookingApiTests(TestCase):
         self.assertEqual(response.json(), {"error": "date_end must be after date_start"})
         self.assertEqual(Booking.objects.count(), 0)
 
+    def test_create_booking_rejects_overlapping_booking(self):
+        Booking.objects.create(
+            room=self.room,
+            date_start=date(2026, 7, 20),
+            date_end=date(2026, 7, 25),
+        )
+
+        response = self.client.post(
+            reverse("booking_create"),
+            {
+                "room_id": str(self.room.id),
+                "date_start": "2026-07-23",
+                "date_end": "2026-07-27",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {"error": "room is already booked for these dates"})
+        self.assertEqual(Booking.objects.count(), 1)
+
+    def test_create_booking_allows_adjacent_booking(self):
+        Booking.objects.create(
+            room=self.room,
+            date_start=date(2026, 7, 20),
+            date_end=date(2026, 7, 25),
+        )
+
+        response = self.client.post(
+            reverse("booking_create"),
+            {
+                "room_id": str(self.room.id),
+                "date_start": "2026-07-25",
+                "date_end": "2026-07-27",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Booking.objects.count(), 2)
+
     def test_delete_booking_removes_booking(self):
         booking = Booking.objects.create(
             room=self.room,
